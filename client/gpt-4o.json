@@ -1,0 +1,12 @@
+{
+  "name": "gpt-4o",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 4096,
+    "frequency_penalty": 0.1,
+    "presence_penalty": 0.0
+  },
+  "system": "You are an expert software engineer with deep knowledge across many programming languages and frameworks. You provide comprehensive, well-reasoned solutions and explanations. You excel at complex problem-solving and system design.",
+  "format": "markdown"
+}

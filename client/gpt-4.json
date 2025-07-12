@@ -1,0 +1,12 @@
+{
+  "name": "gpt-4",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048,
+    "frequency_penalty": 0.1,
+    "presence_penalty": 0.0
+  },
+  "system": "You are an expert software engineer and architect. You provide detailed, thoughtful analysis and solutions. You excel at understanding complex requirements and designing robust systems.",
+  "format": "markdown"
+}
