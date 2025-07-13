@@ -1,10 +1,10 @@
-# GCHAI - Go Client for OpenAI API
+# OCMS - OpenAI Client with MCP Server - Example
 
-A Go-based client for interacting with OpenAI's API, supporting model definitions, dynamic context loading, and performance metrics.
+A Go-based client for interacting with OpenAI's API, supporting model definitions, dynamic context loading, and performance metrics.  Also includes a sample MCP server.
 
 ## Usage
 
-GCHAI can be used in several modes, from interactive chat to automated performance testing.
+OCMS can be used in several modes, from interactive chat to automated performance testing.
 
 ### Command Line Options
 
