@@ -6,7 +6,12 @@
       "version": "1.22"
     }
   },
-  "postCreateCommand": "go mod download && go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest github.com/go-delve/delve/cmd/dlv@latest golang.org/x/tools/cmd/goimports@latest",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    }
+  },
+  "postCreateCommand": "npm install -g @anthropic-ai/claude-code",
   "customizations": {
     "vscode": {
       "extensions": [
@@ -20,5 +25,6 @@
     "go.toolsManagement.autoUpdate": true,
     "go.useLanguageServer": true,
     "go.lintTool": "golangci-lint"
-  }
+  },
+  "remoteUser": "vscode"
 }
