@@ -1,12 +1,85 @@
-# GCHAI Client Analysis Report
+# OpenAI Client
+
+An advanced interactive CLI client for OpenAI's API with sophisticated context management, performance monitoring, and model configuration capabilities.
 
 ## Overview
 
-This document provides a comprehensive analysis of the GCHAI (Go Client for OpenAI API) implementation. GCHAI is a sophisticated command-line client that provides an interactive interface for communicating with OpenAI's API, featuring model configuration, context management, conversation history, and performance metrics.
+This client provides a rich interactive interface for working with OpenAI models, featuring intelligent context management, real-time performance metrics, and flexible model configuration through JSON files.
+
+## Features
+
+### 🎯 Core Capabilities
+- **Interactive CLI**: Rich command-line interface with history and completion
+- **Streaming Responses**: Real-time response display with performance metrics
+- **Model Configuration**: JSON-based model definitions with parameter control
+- **Context Management**: Intelligent file loading with automatic token counting
+- **Performance Monitoring**: Real-time tokens/sec, response time, and context usage
+
+### 🛠️ Interactive Commands
+- `/load <file>` - Load source files into context
+- `/model <file>` - Switch model configuration  
+- `/status` - Show current model, context usage, token counts
+- `/history` - Display conversation history
+- `/clear` - Clear conversation history
+- `/dump` - Export context to file
+- `/help` - Show available commands
+
+### 📊 Performance Metrics
+Automatically displays after each interaction:
+```
+[Performance: 123.45 tokens/sec, 150 total tokens, response time: 1.234s]
+```
+
+## Quick Start
+
+### Prerequisites
+- Go 1.19+
+- OpenAI API key
+
+### Setup and Run
+```bash
+# Set API key
+export OPENAI_API_KEY="sk-your-api-key-here"
+
+# Build and run
+make run
+
+# Or manually
+go build -o client . && ./client
+```
+
+## Usage
+
+### Command Line Options
+```bash
+./client [flags]
+
+Flags:
+  -model string     Path to model definition file (JSON format)
+  -prompt string    Path to initial prompt file
+  -url string       OpenAI API base URL (default: https://api.openai.com)
+  -default-model    Default model to use (default: gpt-4o-mini)
+  -context, -c      Show full context before sending to LLM
+```
+
+### Examples
+```bash
+# Basic interactive chat
+./client
+
+# Using custom model configuration
+./client -model gpt-4o.json
+
+# Starting with initial prompt
+./client -model gpt-4o-mini.json -prompt test-prompt.txt
+
+# Show context before sending
+./client -context -model gpt-4.json
+```
 
 ## Architecture Overview
 
-The client follows a modular architecture with clear separation of concerns between configuration management, conversation handling, API communication, and user interface components.
+The client follows a modular architecture with clear separation of concerns:
 
 ### High-Level System Architecture
 

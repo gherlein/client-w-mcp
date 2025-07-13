@@ -1,14 +1,90 @@
-# OCMS - OpenAI Client with MCP Server - Example
+# OpenAI Client with MCP Server Example
 
-A Go-based client for interacting with OpenAI's API, supporting model definitions, dynamic context loading, and performance metrics.  Also includes a sample MCP server.
+A comprehensive Go-based toolkit demonstrating AI API integration and Model Context Protocol (MCP) implementation. This project showcases two complementary components working together to provide a complete AI development experience.
 
-## Usage
+## Project Components
 
-OCMS can be used in several modes, from interactive chat to automated performance testing.
+### 🤖 OpenAI Client (`/client`)
+An advanced interactive CLI client for OpenAI's API featuring:
+- **Model Configuration**: JSON-based model definitions with parameter control
+- **Context Management**: Intelligent file loading with token counting and auto-trimming
+- **Performance Monitoring**: Real-time metrics for tokens/sec, response time, and context usage
+- **Interactive CLI**: Rich command interface with history, completion, and conversation management
+
+### 🔧 MCP Server (`/server`)
+A Model Context Protocol server providing extensible tool capabilities:
+- **HTTP-based MCP Implementation**: RESTful server compliant with MCP specification
+- **Tool System**: Extensible architecture for adding custom tools and capabilities
+- **Stateless Design**: Horizontally scalable with minimal resource footprint
+- **JSON Schema Validation**: Automatic parameter validation for tool inputs
+
+### Architecture Overview
+
+```mermaid
+graph TB
+    subgraph "OpenAI Client"
+        CLI[Interactive CLI]
+        Context[Context Manager]
+        Config[Model Config]
+        Perf[Performance Metrics]
+    end
+    
+    subgraph "MCP Server"
+        HTTP[HTTP Transport :8081]
+        Tools[Tool Registry]
+        Time[Time Tool]
+    end
+    
+    subgraph "External Services"
+        OpenAI[OpenAI API]
+        Files[Local Files]
+    end
+    
+    CLI --> Context
+    Context --> Files
+    Config --> OpenAI
+    CLI --> OpenAI
+    
+    HTTP --> Tools
+    Tools --> Time
+    
+    style CLI fill:#e3f2fd
+    style HTTP fill:#f3e5f5
+    style OpenAI fill:#e8f5e8
+```
+
+## Quick Start
+
+### Prerequisites
+- Go 1.19 or later
+- OpenAI API key (for client)
+
+### Setup
+1. **Set OpenAI API key**:
+   ```bash
+   export OPENAI_API_KEY="sk-your-api-key-here"
+   ```
+
+2. **Build and run the client**:
+   ```bash
+   cd client
+   make run
+   ```
+
+3. **Build and run the MCP server** (in separate terminal):
+   ```bash
+   cd server
+   make run
+   ```
+
+## Using the OpenAI Client
+
+The client provides an interactive chat interface with advanced features for AI development.
 
 ### Command Line Options
 
 ```bash
+cd client
 ./client [flags]
 
 Flags:
@@ -70,10 +146,11 @@ While in interactive mode, the following commands are available:
 
 - `/load <file>` - Load a file into context
 - `/model <file>` - Load a model definition file
-- `/template <file>` - Create a model definition template
-- `/list` - List loaded files
-- `/clear` - Clear context
 - `/status` - Show current model and parameters
+- `/history` - Display conversation history
+- `/clear` - Clear conversation history
+- `/dump` - Export context to file
+- `/help` - Show available commands
 
 ### Examples
 
@@ -81,25 +158,92 @@ Here are some common usage examples:
 
 ```bash
 # Basic interactive chat
-./client
+cd client && ./client
 
 # Using a custom model with specific parameters
-./client -model qwen2.5-coder32b-basic.json
+./client -model gpt-4o.json
 
 # Starting with an initial prompt
-./client -model qwen2.5-coder32b-basic.json -prompt test-prompt.txt
+./client -model gpt-4o-mini.json -prompt test-prompt.txt
 
 # Show context before sending to model
-./client -context -model model.json
+./client -context -model gpt-4.json
 ```
+
+## Using the MCP Server
+
+The MCP server provides tools that can be accessed via HTTP requests to the MCP endpoint.
+
+### Server Information
+- **Endpoint**: `http://localhost:8081/mcp`
+- **Protocol**: HTTP with JSON payloads
+- **Available Tools**: `time` (returns current time in specified format)
+
+### Starting the Server
+
+```bash
+cd server
+make run
+# Server starts on port 8081
+```
+
+### Testing the Server
+
+You can test the MCP server using curl:
+
+```bash
+# Test the time tool
+curl -X POST http://localhost:8081/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "method": "tools/call",
+    "params": {
+      "name": "time",
+      "arguments": {
+        "format": "2006-01-02 15:04:05"
+      }
+    }
+  }'
+```
+
+### Adding New Tools
+
+To extend the server with additional tools:
+
+1. **Define argument structure**:
+   ```go
+   type CalculatorArgs struct {
+       Operation string  `json:"operation"`
+       A         float64 `json:"a"`
+       B         float64 `json:"b"`
+   }
+   ```
+
+2. **Implement handler function**:
+   ```go
+   func calculatorHandler(args CalculatorArgs) (*mcp_golang.ToolResponse, error) {
+       // Implementation here
+   }
+   ```
+
+3. **Register the tool**:
+   ```go
+   server.RegisterTool("calculator", "Performs basic math operations", calculatorHandler)
+   ```
+
+## Configuration
 
 ### Environment Variables
 
-The following environment variables can be used to configure the client:
-
+#### Client Configuration
 - `OPENAI_API_KEY`: Your OpenAI API key (required)
 - `OPENAI_ORG_ID`: Your OpenAI organization ID (optional)
-- `OPENAI_BASE_URL`: Custom OpenAI API base URL (optional, default: <https://api.openai.com>)
+- `OPENAI_BASE_URL`: Custom OpenAI API base URL (optional, default: https://api.openai.com)
+
+#### Server Configuration
+The MCP server currently requires no environment variables but can be extended with:
+- `MCP_PORT`: Custom port for the server (default: 8081)
+- `MCP_HOST`: Custom host binding (default: all interfaces)
 
 ## Model Files
 
@@ -216,39 +360,33 @@ The `parameters` section supports the following OpenAI API parameters:
 
 ### References
 
-## Getting Started
+## Build Commands
 
-### Prerequisites
-
-1. **OpenAI API Key**: Get your API key from <https://platform.openai.com/api-keys>
-2. **Go 1.19+**: Required to build the client
-
-### Setup
-
-1. Set your OpenAI API key:
-
-```bash
-export OPENAI_API_KEY="sk-your-api-key-here"
-```
-
-2. Build the client:
-
+### Client Build Commands
 ```bash
 cd client
-go build -o client .
+make build          # Build the client binary
+make run            # Build and run client
+make clean          # Remove binary and temp files
+make flush          # Clean Go module cache
 ```
 
-3. Run the client:
-
+### Server Build Commands  
 ```bash
-# Interactive mode with default model (gpt-4o-mini)
-./client
+cd server
+make build          # Build the server binary
+make run            # Build and run server on port 8081
+make clean          # Remove binary and temp files
+make flush          # Clean Go module cache
+```
 
-# Using a specific model configuration
-./client -model gpt-4o.json
+### Manual Build
+```bash
+# Client
+cd client && go build -o client . && ./client
 
-# Starting with an initial prompt
-./client -model gpt-4o-mini.json -prompt test-prompt.txt
+# Server  
+cd server && go build -o server . && ./server
 ```
 
 ### Example Model Files
@@ -259,21 +397,49 @@ The repository includes several pre-configured model files:
 - `gpt-4o.json`: Advanced model with enhanced capabilities
 - `gpt-4.json`: High-quality model for complex tasks
 
+## Development and Extension
+
+### Architecture Benefits
+- **Modular Design**: Client and server can be developed independently
+- **Extensible**: Easy to add new tools to MCP server or features to client
+- **Scalable**: Stateless MCP server design allows horizontal scaling
+- **Standard Protocols**: Uses OpenAI API and MCP specifications
+
+### Use Cases
+- **AI Development**: Interactive testing and development with AI models
+- **Tool Integration**: Extending AI capabilities through MCP tools
+- **Research**: Performance analysis and model comparison
+- **Education**: Learning AI integration patterns and protocols
+
+### Future Enhancements
+- **Multi-Provider Support**: Add support for other AI providers (Anthropic, Azure, etc.)
+- **Advanced Tools**: Extend MCP server with file manipulation, web search, code execution
+- **Collaboration**: Session sharing and team features
+- **Monitoring**: Enhanced logging, metrics, and observability
+
 ## API Usage and Costs
 
-When using OpenAI's API, be aware of the following:
+When using OpenAI's API, be aware of:
+- **Token-based pricing**: Pay for input and output tokens
+- **Rate limits**: API requests subject to rate limiting
+- **Context windows**: Larger contexts cost more but provide better continuity
+- **Model differences**: Different capabilities and costs per model
 
-- **Token-based pricing**: You pay for both input and output tokens
-- **Rate limits**: API requests are subject to rate limiting
-- **Context window**: Larger contexts cost more but provide better continuity
-- **Model differences**: Different models have different capabilities and costs
-
-For current pricing information, visit <https://openai.com/pricing>
+For current pricing: [OpenAI Pricing](https://openai.com/pricing)
 
 ## References
 
-For more information about OpenAI's API and models:
-
+### OpenAI API
 - [OpenAI API Documentation](https://platform.openai.com/docs)
 - [Model Information](https://platform.openai.com/docs/models)
 - [API Reference](https://platform.openai.com/docs/api-reference/chat)
+
+### Model Context Protocol (MCP)
+- [MCP Specification](https://spec.modelcontextprotocol.io/)
+- [MCP Go Library](https://github.com/metoro-io/mcp-golang)
+
+### Project Documentation
+- [`CLAUDE.md`](./CLAUDE.md) - Detailed development guidance
+- [`bedrock.md`](./bedrock.md) - Amazon Bedrock migration plan
+- [`client/README.md`](./client/README.md) - Client-specific documentation
+- [`server/README.md`](./server/README.md) - Server-specific documentation

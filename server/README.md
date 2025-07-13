@@ -1,12 +1,133 @@
-# MCP Server Analysis Report
+# MCP Server
+
+A Model Context Protocol (MCP) server providing extensible tool capabilities through HTTP-based API. Built using Go and the mcp-golang library for standards-compliant MCP implementation.
 
 ## Overview
 
-This document provides a comprehensive analysis of the Model Context Protocol (MCP) server implementation found in the `/server` directory. The server is a Go-based HTTP service that implements the MCP specification to provide tools and capabilities to MCP clients.
+This server implements the Model Context Protocol specification, providing a stateless HTTP service that exposes tools and capabilities to MCP clients. The architecture is designed for easy extensibility and horizontal scaling.
+
+## Features
+
+### 🎯 Core Capabilities
+- **HTTP-based MCP Implementation**: RESTful server compliant with MCP specification
+- **Tool System**: Extensible architecture for adding custom tools and capabilities
+- **Stateless Design**: Horizontally scalable with minimal resource footprint
+- **JSON Schema Validation**: Automatic parameter validation for tool inputs
+- **Standards Compliant**: Built on official mcp-golang library
+
+### 🛠️ Available Tools
+- **time**: Returns current time in specified format
+
+### 🏗️ Architecture Benefits
+- **Modular Design**: Easy to add new tools
+- **Stateless**: No session state, scales horizontally
+- **Fast Startup**: Quick server initialization
+- **Concurrent**: Handles multiple requests simultaneously
+
+## Quick Start
+
+### Prerequisites
+- Go 1.19+
+
+### Setup and Run
+```bash
+# Build and run
+make run
+
+# Or manually
+go build -o server . && ./server
+```
+
+Server starts on port 8081 at endpoint `/mcp`.
+
+## Usage
+
+### Server Information
+- **Endpoint**: `http://localhost:8081/mcp`
+- **Protocol**: HTTP with JSON payloads
+- **Method**: POST for tool calls
+
+### Testing the Server
+
+Test the time tool using curl:
+```bash
+curl -X POST http://localhost:8081/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "method": "tools/call",
+    "params": {
+      "name": "time",
+      "arguments": {
+        "format": "2006-01-02 15:04:05"
+      }
+    }
+  }'
+```
+
+### Response Format
+```json
+{
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "2025-01-15 14:30:25"
+      }
+    ]
+  }
+}
+```
+
+## Adding New Tools
+
+### 1. Define Argument Structure
+Create a struct with JSON schema tags:
+```go
+type CalculatorArgs struct {
+    Operation string  `json:"operation" jsonschema:"description=Math operation (add, subtract, multiply, divide)"`
+    A         float64 `json:"a" jsonschema:"description=First number"`
+    B         float64 `json:"b" jsonschema:"description=Second number"`
+}
+```
+
+### 2. Implement Handler Function
+```go
+func calculatorHandler(args CalculatorArgs) (*mcp_golang.ToolResponse, error) {
+    var result float64
+    
+    switch args.Operation {
+    case "add":
+        result = args.A + args.B
+    case "subtract":
+        result = args.A - args.B
+    case "multiply":
+        result = args.A * args.B
+    case "divide":
+        if args.B == 0 {
+            return nil, fmt.Errorf("division by zero")
+        }
+        result = args.A / args.B
+    default:
+        return nil, fmt.Errorf("unsupported operation: %s", args.Operation)
+    }
+    
+    return mcp_golang.NewToolResponse(
+        mcp_golang.NewTextContent(fmt.Sprintf("%.2f", result))
+    ), nil
+}
+```
+
+### 3. Register the Tool
+```go
+err := server.RegisterTool("calculator", "Performs basic math operations", calculatorHandler)
+if err != nil {
+    panic(err)
+}
+```
 
 ## Architecture Overview
 
-The server is built using the `github.com/metoro-io/mcp-golang` library and implements a stateless HTTP server that exposes MCP tools through a REST API endpoint.
+The server uses the mcp-golang library for standards-compliant MCP implementation:
 
 ### System Architecture
 

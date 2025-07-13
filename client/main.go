@@ -23,43 +23,24 @@ import (
 	"golang.org/x/text/language"
 )
 
-// ModelParameters represents runtime parameters for Ollama requests
-type ModelParameters struct {
-	Temperature     float64 `json:"temperature,omitempty"`    // Controls randomness (0.0 to 1.0, default 0.8)
-	TopP            float64 `json:"top_p,omitempty"`          // Nucleus sampling (0.0 to 1.0, default 0.9)
-	TopK            int     `json:"top_k,omitempty"`          // Top-k sampling (1 to 100, default 40)
-	RepeatPenalty   float64 `json:"repeat_penalty,omitempty"` // Penalty for repeated tokens (1.0 to 2.0, default 1.1)
-	Seed            int     `json:"seed,omitempty"`           // RNG seed, -1 for random
-	NumPredict      int     `json:"num_predict,omitempty"`    // Maximum number of tokens to predict
-	Stop            string  `json:"stop,omitempty"`           // Stop sequence
-	TFSZTemperature float64 `json:"tfs_z,omitempty"`          // Tail free sampling temperature
-	NumThread       int     `json:"num_thread,omitempty"`     // Number of threads to use for generation
-	NumGPU          int     `json:"num_gpu,omitempty"`        // Number of GPUs to use
-	NumKeep         int     `json:"num_keep,omitempty"`       // Number of tokens to keep from initial prompt
-	NumBatch        int     `json:"num_batch,omitempty"`      // Batch size for prompt processing
-	RepeatLastN     int     `json:"repeat_last_n,omitempty"`  // Number of tokens to look back for repetition
-	Mirostat        int     `json:"mirostat,omitempty"`       // Enable Mirostat sampling (0, 1, or 2)
-	MirostatTau     float64 `json:"mirostat_tau,omitempty"`   // Mirostat target entropy (default 5.0)
-	MirostatEta     float64 `json:"mirostat_eta,omitempty"`   // Mirostat learning rate (default 0.1)
+// AnthropicParameters represents runtime parameters for Anthropic requests
+type AnthropicParameters struct {
+	MaxTokens     int      `json:"max_tokens"`               // Maximum number of tokens to generate
+	Temperature   float64  `json:"temperature,omitempty"`    // Controls randomness (0.0 to 1.0)
+	TopP          float64  `json:"top_p,omitempty"`          // Nucleus sampling (0.0 to 1.0)
+	TopK          int      `json:"top_k,omitempty"`          // Top-k sampling
+	StopSequences []string `json:"stop_sequences,omitempty"` // Stop sequences
 }
 
-// ModelOptions represents model-wide configuration options
-type ModelOptions struct {
-	NumCtx    int `json:"num_ctx,omitempty"`    // Size of context window
-	NumBatch  int `json:"num_batch,omitempty"`  // Batch size for prompt processing
-	NumGPU    int `json:"num_gpu,omitempty"`    // Number of GPUs to use
-	NumThread int `json:"num_thread,omitempty"` // Number of threads to use
-}
 
 // ModelDefinition represents the structure of a model definition file
 type ModelDefinition struct {
-	Name       string          `json:"name"`
-	Modelfile  string          `json:"modelfile"`
-	Parameters ModelParameters `json:"parameters"`
-	Options    ModelOptions    `json:"options"` // Model-wide configuration options
-	Template   string          `json:"template"`
-	System     string          `json:"system"`
-	Format     string          `json:"format,omitempty"` // Optional response format (json, md, etc)
+	Name       string               `json:"name"`        // Claude model name
+	Provider   string               `json:"provider"`    // "direct" or "bedrock"
+	Region     string               `json:"region,omitempty"` // For Bedrock
+	Parameters AnthropicParameters `json:"parameters"`
+	System     string               `json:"system"`
+	Format     string               `json:"format,omitempty"` // Optional response format
 }
 
 // Message represents a chat message
@@ -68,37 +49,54 @@ type Message struct {
 	Content string `json:"content"`
 }
 
-// OpenAIChatRequest represents a chat completion request for OpenAI API
-type OpenAIChatRequest struct {
-	Model         string     `json:"model"`
-	Messages      []Message  `json:"messages"`
-	Temperature   *float64   `json:"temperature,omitempty"`
-	TopP          *float64   `json:"top_p,omitempty"`
-	MaxTokens     *int       `json:"max_tokens,omitempty"`
-	Stream        bool       `json:"stream"`
-	Stop          []string   `json:"stop,omitempty"`
-	FrequencyPenalty *float64 `json:"frequency_penalty,omitempty"`
-	PresencePenalty  *float64 `json:"presence_penalty,omitempty"`
-	Seed          *int       `json:"seed,omitempty"`
+// AnthropicRequest represents a chat completion request for Anthropic API
+type AnthropicRequest struct {
+	Model         string             `json:"model"`
+	MaxTokens     int                `json:"max_tokens"`
+	Messages      []AnthropicMessage `json:"messages"`
+	System        string             `json:"system,omitempty"`
+	Temperature   *float64           `json:"temperature,omitempty"`
+	TopP          *float64           `json:"top_p,omitempty"`
+	TopK          *int               `json:"top_k,omitempty"`
+	Stream        bool               `json:"stream,omitempty"`
+	StopSequences []string           `json:"stop_sequences,omitempty"`
 }
 
-// OpenAIChatResponse represents a streaming chat response from OpenAI API
-type OpenAIChatResponse struct {
-	ID      string `json:"id"`
-	Object  string `json:"object"`
-	Created int64  `json:"created"`
-	Model   string `json:"model"`
-	Choices []struct {
-		Index        int      `json:"index"`
-		Delta        *Message `json:"delta,omitempty"`   // For streaming
-		Message      *Message `json:"message,omitempty"` // For non-streaming
-		FinishReason *string  `json:"finish_reason"`
-	} `json:"choices"`
-	Usage *struct {
-		PromptTokens     int `json:"prompt_tokens"`
-		CompletionTokens int `json:"completion_tokens"`
-		TotalTokens      int `json:"total_tokens"`
-	} `json:"usage,omitempty"`
+// AnthropicResponse represents a chat response from Anthropic API
+type AnthropicResponse struct {
+	ID         string             `json:"id"`
+	Type       string             `json:"type"`
+	Role       string             `json:"role"`
+	Content    []AnthropicContent `json:"content"`
+	Model      string             `json:"model"`
+	StopReason string             `json:"stop_reason"`
+	Usage      AnthropicUsage     `json:"usage"`
+}
+
+// AnthropicMessage represents a message in Anthropic format
+type AnthropicMessage struct {
+	Role    string             `json:"role"`    // "user" or "assistant"
+	Content []AnthropicContent `json:"content"`
+}
+
+// AnthropicContent represents content within a message
+type AnthropicContent struct {
+	Type   string       `json:"type"`   // "text" or "image"
+	Text   string       `json:"text,omitempty"`
+	Source *ImageSource `json:"source,omitempty"`
+}
+
+// ImageSource represents an image source
+type ImageSource struct {
+	Type      string `json:"type"`       // "base64"
+	MediaType string `json:"media_type"` // "image/jpeg", etc.
+	Data      string `json:"data"`       // base64 data
+}
+
+// AnthropicUsage represents token usage information
+type AnthropicUsage struct {
+	InputTokens  int `json:"input_tokens"`
+	OutputTokens int `json:"output_tokens"`
 }
 
 // PerfMetrics tracks performance metrics for LLM responses
@@ -208,10 +206,10 @@ type ContextStats struct {
 	UsagePercent    float64 // Percentage of context window used
 }
 
-// estimateTokenCount provides an improved estimate of tokens for OpenAI models
+// estimateTokenCount provides an improved estimate of tokens for Claude models
 func estimateTokenCount(text string) int {
-	// Improved estimation for OpenAI models
-	// GPT models generally use ~4 characters per token for English text
+	// Improved estimation for Claude models
+	// Claude models generally use ~4 characters per token for English text
 	// This is still an approximation - actual tokenization varies by content
 	chars := len(text)
 	
@@ -235,8 +233,8 @@ func estimateTokenCount(text string) int {
 }
 
 // getContextStats calculates context window usage including all messages
-func (c *OpenAIClient) getContextStats() ContextStats {
-	// Get context window size using our OpenAI-aware method
+func (c *AnthropicClient) getContextStats() ContextStats {
+	// Get context window size using our Claude-aware method
 	windowSize := c.getContextWindow()
 
 	// Calculate tokens from context files
@@ -269,9 +267,12 @@ func (c *OpenAIClient) getContextStats() ContextStats {
 	}
 }
 
-// OpenAIClient handles communication with OpenAI API
-type OpenAIClient struct {
+// AnthropicClient handles communication with Anthropic API
+type AnthropicClient struct {
+	provider     string // "direct" or "bedrock"
 	baseURL      string
+	region       string // For Bedrock
+	version      string // Anthropic API version
 	httpClient   *http.Client
 	context      []ContextFile
 	model        *ModelDefinition
@@ -280,9 +281,10 @@ type OpenAIClient struct {
 	history      *ConversationHistory
 	showContext  bool      // Whether to show prompts and context before sending to LLM
 	lastContext  []Message // Stores the last context sent to the LLM
+	lastMetrics  *PerfMetrics
 }
 
-func (c *OpenAIClient) loadModel(path string) error {
+func (c *AnthropicClient) loadModel(path string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("failed to read model file: %v", err)
@@ -293,9 +295,17 @@ func (c *OpenAIClient) loadModel(path string) error {
 		return fmt.Errorf("failed to parse model file: %v", err)
 	}
 
-	// For OpenAI models, just validate the model name format
+	// For Anthropic models, validate the model name format
 	if model.Name == "" {
 		return fmt.Errorf("model name is required")
+	}
+
+	// Validate provider
+	if model.Provider == "" {
+		model.Provider = "direct" // Default to direct API
+	}
+	if model.Provider != "direct" && model.Provider != "bedrock" {
+		return fmt.Errorf("provider must be 'direct' or 'bedrock'")
 	}
 
 	// Store the model configuration
@@ -330,21 +340,48 @@ func detectFileLanguage(filename string) string {
 	}
 }
 
-func NewOpenAIClient(baseURL string, defaultModel string) *OpenAIClient {
+func NewAnthropicClient(provider, baseURL, region, defaultModel string) *AnthropicClient {
+	if provider == "" {
+		provider = "direct"
+	}
 	if baseURL == "" {
-		baseURL = "https://api.openai.com"
+		baseURL = "https://api.anthropic.com"
+	}
+	if region == "" {
+		region = "us-east-1"
 	}
 	if defaultModel == "" {
-		defaultModel = "gpt-4o-mini"
+		defaultModel = "claude-3-5-sonnet-20241022"
 	}
-	return &OpenAIClient{
+	
+	client := &AnthropicClient{
+		provider:     provider,
 		baseURL:      baseURL,
+		region:       region,
+		version:      "2023-06-01",
 		httpClient:   &http.Client{},
 		defaultModel: defaultModel,
 	}
+	
+	return client
 }
 
-func (c *OpenAIClient) loadFile(path string) error {
+// initializeAuthentication validates authentication and provides helpful error messages
+func (c *AnthropicClient) initializeAuthentication() error {
+	if err := c.validateAuthentication(); err != nil {
+		switch c.provider {
+		case "direct":
+			return fmt.Errorf("Authentication setup error: %v\n\nTo use Anthropic's direct API:\n1. Get an API key from https://console.anthropic.com/\n2. Set environment variable: export ANTHROPIC_API_KEY=\"sk-ant-your-key-here\"", err)
+		case "bedrock":
+			return fmt.Errorf("Authentication setup error: %v\n\nTo use Anthropic via Bedrock:\n1. Configure AWS credentials (aws configure or environment variables)\n2. Ensure you have access to Claude models in Bedrock", err)
+		default:
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *AnthropicClient) loadFile(path string) error {
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("failed to read file: %v", err)
@@ -372,32 +409,19 @@ func (c *OpenAIClient) loadFile(path string) error {
 	return nil
 }
 
-func (c *OpenAIClient) createModelTemplate(path string) error {
+func (c *AnthropicClient) createModelTemplate(path string) error {
 	template := ModelDefinition{
-		Name: "mymodel",
-		Modelfile: `FROM llama2
-PARAMETER temperature 0.7
-PARAMETER top_p 0.9
-PARAMETER top_k 40
-PARAMETER num_ctx 8192`,
-		Parameters: ModelParameters{
+		Name:     "claude-3-5-sonnet-20241022",
+		Provider: "direct",
+		Parameters: AnthropicParameters{
+			MaxTokens:     4096,
 			Temperature:   0.7,
 			TopP:          0.9,
 			TopK:          40,
-			RepeatPenalty: 1.1,
-			NumPredict:    2048, // Allow for much longer responses by default
-			RepeatLastN:   64,
-			Seed:          -1,
+			StopSequences: []string{},
 		},
-		Options: ModelOptions{
-			NumCtx:    8192,
-			NumBatch:  512,
-			NumThread: 4,
-			NumGPU:    1,
-		},
-		Template: "{{ .Prompt }}",
-		System:   "You are a helpful assistant with expertise in software development.",
-		Format:   "markdown",
+		System: "You are a helpful assistant with expertise in software development.",
+		Format: "markdown",
 	}
 
 	data, err := json.MarshalIndent(template, "", "  ")
@@ -412,7 +436,7 @@ PARAMETER num_ctx 8192`,
 	return nil
 }
 
-func (c *OpenAIClient) buildContextMessage() string {
+func (c *AnthropicClient) buildContextMessage() string {
 	if len(c.context) == 0 {
 		return ""
 	}
@@ -437,60 +461,248 @@ func (c *OpenAIClient) buildContextMessage() string {
 	return b.String()
 }
 
-// ChatRequest is an alias for OpenAIChatRequest to maintain compatibility
-type ChatRequest = OpenAIChatRequest
+// convertHistoryToAnthropicFormat converts conversation history to Anthropic message format
+func (c *AnthropicClient) convertHistoryToAnthropicFormat() []AnthropicMessage {
+	var messages []AnthropicMessage
+	
+	for _, msg := range c.history.Messages {
+		if msg.Role == "system" {
+			continue // System messages handled separately in Anthropic API
+		}
+		
+		anthMsg := AnthropicMessage{
+			Role: msg.Role,
+			Content: []AnthropicContent{{
+				Type: "text",
+				Text: msg.Content,
+			}},
+		}
+		messages = append(messages, anthMsg)
+	}
+	
+	return messages
+}
 
-// ChatResponse is an alias for OpenAIChatResponse to maintain compatibility
-type ChatResponse = OpenAIChatResponse
+// convertAnthropicToDisplayFormat converts Anthropic response content to display text
+func convertAnthropicToDisplayFormat(content []AnthropicContent) string {
+	var result strings.Builder
+	
+	for _, block := range content {
+		if block.Type == "text" {
+			result.WriteString(block.Text)
+		}
+	}
+	
+	return result.String()
+}
 
-func (c *OpenAIClient) Chat(ctx context.Context, req *ChatRequest) error {
+// extractSystemPrompt extracts the system prompt from the current model or history
+func (c *AnthropicClient) extractSystemPrompt() string {
+	// First priority: model's system prompt
+	if c.model != nil && c.model.System != "" {
+		return c.model.System
+	}
+	
+	// Second priority: system message in history
+	if c.history != nil {
+		for _, msg := range c.history.Messages {
+			if msg.Role == "system" {
+				return msg.Content
+			}
+		}
+	}
+	
+	return ""
+}
+
+// ChatRequest is an alias for AnthropicRequest to maintain compatibility
+type ChatRequest = AnthropicRequest
+
+// ChatResponse is an alias for AnthropicResponse to maintain compatibility
+type ChatResponse = AnthropicResponse
+
+func (c *AnthropicClient) Chat(ctx context.Context, req *ChatRequest) error {
 	metrics := &PerfMetrics{}
 	metrics.start()
 
-	// Store the context for later reference
-	c.lastContext = make([]Message, len(req.Messages))
-	copy(c.lastContext, req.Messages)
+	// Convert history to Anthropic format
+	anthropicMessages := c.convertHistoryToAnthropicFormat()
+	systemPrompt := c.extractSystemPrompt()
+
+	// Build proper Anthropic request
+	anthropicReq := &AnthropicRequest{
+		Model:     c.defaultModel,
+		MaxTokens: 4096, // Default
+		Messages:  anthropicMessages,
+		System:    systemPrompt,
+		Stream:    true,
+	}
+
+	// Override with model configuration if available
+	if c.model != nil {
+		anthropicReq.Model = c.model.Name
+		if c.model.Parameters.MaxTokens > 0 {
+			anthropicReq.MaxTokens = c.model.Parameters.MaxTokens
+		}
+		if c.model.Parameters.Temperature > 0 {
+			anthropicReq.Temperature = &c.model.Parameters.Temperature
+		}
+		if c.model.Parameters.TopP > 0 {
+			anthropicReq.TopP = &c.model.Parameters.TopP
+		}
+		if c.model.Parameters.TopK > 0 {
+			anthropicReq.TopK = &c.model.Parameters.TopK
+		}
+		if len(c.model.Parameters.StopSequences) > 0 {
+			anthropicReq.StopSequences = c.model.Parameters.StopSequences
+		}
+	}
+
+	// Store context for reference
+	c.lastContext = req.Messages
 
 	// Get context window stats
 	stats := c.getContextStats()
 	metrics.updateContextStats(stats.WindowSize, stats.UsedTokens)
 
-	// If showContext is enabled, print all messages and ask for confirmation
+	// Show context if requested
 	if c.showContext {
 		fmt.Println("\nComplete request to be sent:")
 		fmt.Println("============================")
+		fmt.Printf("Model: %s\n", anthropicReq.Model)
+		fmt.Printf("Provider: %s\n", c.provider)
+		if anthropicReq.System != "" {
+			fmt.Printf("System: %s\n", anthropicReq.System)
+		}
 
-		// Show model information
-		var numPredict int
-		if c.model != nil {
-			fmt.Printf("Model: %s\n", c.model.Name)
-			if c.model.System != "" {
-				fmt.Printf("System Prompt: %s\n", c.model.System)
-			}
+		// Show parameters
+		fmt.Println("\nActive Parameters:")
+		fmt.Printf("  MaxTokens: %d\n", anthropicReq.MaxTokens)
+		if anthropicReq.Temperature != nil {
+			fmt.Printf("  Temperature: %.2f\n", *anthropicReq.Temperature)
+		}
+		if anthropicReq.TopP != nil {
+			fmt.Printf("  TopP: %.2f\n", *anthropicReq.TopP)
+		}
+		if anthropicReq.TopK != nil {
+			fmt.Printf("  TopK: %d\n", *anthropicReq.TopK)
+		}
 
-			numPredict = c.model.Parameters.NumPredict
-			if numPredict == 0 {
-				numPredict = 2048 // Default if not specified
+		// Show messages
+		fmt.Printf("\nMessages (%d):\n", len(anthropicReq.Messages))
+		for i, msg := range anthropicReq.Messages {
+			content := convertAnthropicToDisplayFormat(msg.Content)
+			if len(content) > 100 {
+				content = content[:100] + "..."
 			}
+			fmt.Printf("%d. [%s]: %s\n", i+1, msg.Role, content)
+		}
 
-			// Show active parameters
-			paramValue := reflect.ValueOf(c.model.Parameters)
-			paramType := reflect.TypeOf(c.model.Parameters)
-			hasParams := false
-			for i := 0; i < paramType.NumField(); i++ {
-				field := paramType.Field(i)
-				value := paramValue.Field(i)
-				if !value.IsZero() {
-					if !hasParams {
-						fmt.Println("\nActive Parameters:")
-						hasParams = true
-					}
-					fmt.Printf("  %s: %v\n", field.Name, value.Interface())
-				}
-			}
-		} else {
-			fmt.Printf("Model: %s (default)\n", c.defaultModel)
-			numPredict = 2048 // Default model parameters
+		fmt.Print("\nSend this request? [Y/n]: ")
+		reader := bufio.NewReader(os.Stdin)
+		response, err := reader.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("failed to read user input: %v", err)
+		}
+		response = strings.TrimSpace(strings.ToLower(response))
+		if response == "n" || response == "no" {
+			return fmt.Errorf("submission cancelled by user")
+		}
+		fmt.Println()
+	}
+
+	// Marshal request
+	jsonBody, err := json.Marshal(anthropicReq)
+	if err != nil {
+		return fmt.Errorf("failed to marshal request: %v", err)
+	}
+
+	// Create HTTP request
+	url := c.baseURL + "/v1/messages"
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(jsonBody))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %v", err)
+	}
+
+	// Add authentication headers
+	if err := c.addAuthHeaders(httpReq); err != nil {
+		return fmt.Errorf("failed to add auth headers: %v", err)
+	}
+
+	// Send request
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("failed to send request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var fullResponse strings.Builder
+
+	if anthropicReq.Stream {
+		// Handle streaming response (to be implemented in Phase 1.5)
+		return fmt.Errorf("streaming responses will be implemented in Phase 1.5")
+	} else {
+		// Handle non-streaming response
+		var anthropicResp AnthropicResponse
+		if err := json.NewDecoder(resp.Body).Decode(&anthropicResp); err != nil {
+			return fmt.Errorf("failed to decode response: %v", err)
+		}
+
+		// Extract content from response
+		content := convertAnthropicToDisplayFormat(anthropicResp.Content)
+		fullResponse.WriteString(content)
+		fmt.Print(content)
+		metrics.addTokens(content)
+
+		// Update metrics with usage info
+		if anthropicResp.Usage.OutputTokens > 0 {
+			metrics.totalTokens = anthropicResp.Usage.OutputTokens
+		}
+	}
+
+	metrics.finish()
+	fmt.Print(metrics)
+
+	// Add response to conversation history
+	if c.history != nil {
+		c.history.AddAssistantMessage(fullResponse.String())
+	}
+
+	// Store metrics
+	c.lastMetrics = metrics
+
+	return nil
+}
+
+func setupMCP() {
+	// TODO: Implement MCP setup once the correct MCP Go library is identified
+	// The current code references non-existent packages:
+	// - http.NewHTTPClientTransport (not a standard library function)
+	// - mcp_golang (package not found)
+	
+	log.Println("MCP setup not implemented yet")
+}
+
+// showCommands prints the list of available commands
+func showCommands() {
+	fmt.Println("Available commands:")
+	fmt.Println("  /help           - Show this help message")
+	fmt.Println("  /load <file>    - Load a file into context")
+	fmt.Println("  /model <file>   - Load model configuration from file")
+	fmt.Println("  /status         - Show current model and context status")
+	fmt.Println("  /history        - Show conversation history")
+	fmt.Println("  /clear          - Clear conversation history")
+	fmt.Println("  /dump           - Dump context to file")
+	fmt.Println("  exit            - Exit the program")
+	fmt.Println()
+}
+
+func main() {
 		}
 
 		// Calculate token estimates per message type
@@ -575,7 +787,7 @@ func (c *OpenAIClient) Chat(ctx context.Context, req *ChatRequest) error {
 	if c.model != nil {
 		req.Model = c.model.Name
 
-		// Map Ollama parameters to OpenAI parameters
+		// Map model parameters to Anthropic parameters
 		params := c.model.Parameters
 		if params.Temperature > 0 {
 			req.Temperature = &params.Temperature
@@ -615,7 +827,7 @@ func (c *OpenAIClient) Chat(ctx context.Context, req *ChatRequest) error {
 		return fmt.Errorf("failed to create request: %v", err)
 	}
 
-	// Add OpenAI authentication headers
+	// Add Anthropic authentication headers
 	if err := c.addAuthHeaders(httpReq); err != nil {
 		return fmt.Errorf("failed to add auth headers: %v", err)
 	}
@@ -723,7 +935,9 @@ func showCommands() {
 
 func main() {
 	var flags struct {
+		provider     string
 		baseURL      string
+		region       string
 		prompt       string
 		modelConfig  string
 		defaultModel string
@@ -731,33 +945,36 @@ func main() {
 	}
 
 	// Parse command line flags
-	flag.StringVar(&flags.baseURL, "url", "https://api.openai.com", "Base URL of the OpenAI API server")
+	flag.StringVar(&flags.provider, "provider", "direct", "Provider to use: direct or bedrock")
+	flag.StringVar(&flags.baseURL, "url", "https://api.anthropic.com", "Base URL of the Anthropic API server")
+	flag.StringVar(&flags.region, "region", "us-east-1", "AWS region for Bedrock")
 	flag.StringVar(&flags.prompt, "prompt", "", "Path to initial prompt file")
 	flag.StringVar(&flags.modelConfig, "model", "", "Path to model configuration file")
-	flag.StringVar(&flags.defaultModel, "default-model", "gpt-4o-mini", "Default model to use if no model config is provided")
+	flag.StringVar(&flags.defaultModel, "default-model", "claude-3-5-sonnet-20241022", "Default model to use if no model config is provided")
 	flag.BoolVar(&flags.showContext, "context", false, "Show prompts and context before sending to LLM")
 	flag.BoolVar(&flags.showContext, "c", false, "Show prompts and context before sending to LLM (shorthand)")
 	flag.Parse()
 
-	// Create OpenAI client
-	openaiClient := &OpenAIClient{
-		baseURL:      flags.baseURL,
-		httpClient:   &http.Client{},
-		defaultModel: flags.defaultModel,
-		history:      NewConversationHistory(""),
-		showContext:  flags.showContext,
+	// Create Anthropic client
+	anthropicClient := NewAnthropicClient(flags.provider, flags.baseURL, flags.region, flags.defaultModel)
+	anthropicClient.history = NewConversationHistory("")
+	anthropicClient.showContext = flags.showContext
+	
+	// Validate authentication early
+	if err := anthropicClient.initializeAuthentication(); err != nil {
+		log.Fatal(err)
 	}
 
 	// Try to load model if specified
 	if flags.modelConfig != "" {
-		if err := openaiClient.loadModel(flags.modelConfig); err != nil {
+		if err := anthropicClient.loadModel(flags.modelConfig); err != nil {
 			log.Printf("Failed to load model config: %v", err)
 		} else {
-			fmt.Printf("\nLoaded model configuration: %s", openaiClient.model.Name)
-			if openaiClient.model.System != "" {
-				fmt.Printf("System prompt: %s\n", openaiClient.model.System)
+			fmt.Printf("\nLoaded model configuration: %s", anthropicClient.model.Name)
+			if anthropicClient.model.System != "" {
+				fmt.Printf("System prompt: %s\n", anthropicClient.model.System)
 				// Set system prompt in history if present
-				openaiClient.history = NewConversationHistory(openaiClient.model.System)
+				anthropicClient.history = NewConversationHistory(anthropicClient.model.System)
 			}
 		}
 	} else {
@@ -778,16 +995,16 @@ func main() {
 	// Handle initial prompt if specified
 	if flags.prompt != "" {
 		promptStr := string(promptContent)
-		openaiClient.history.AddUserMessage(promptStr)
+		anthropicClient.history.AddUserMessage(promptStr)
 
 		// Prepare chat request with history
 		req := &ChatRequest{
-			Messages: openaiClient.history.Messages,
+			Messages: anthropicClient.history.Messages,
 			Stream:   true,
 		}
 
 		fmt.Printf("\nReading prompt from: %s\n", flags.prompt)
-		if err := openaiClient.Chat(context.Background(), req); err != nil {
+		if err := anthropicClient.Chat(context.Background(), req); err != nil {
 			log.Printf("Error processing initial prompt: %v", err)
 		}
 		fmt.Println()
@@ -848,7 +1065,7 @@ func main() {
 		// Handle file loading command
 		if strings.HasPrefix(question, "/load ") {
 			filePath := strings.TrimSpace(strings.TrimPrefix(question, "/load "))
-			if err := openaiClient.loadFile(filePath); err != nil {
+			if err := anthropicClient.loadFile(filePath); err != nil {
 				fmt.Printf("Error loading file: %v\n", err)
 			} else {
 				fmt.Printf("Loaded file: %s\n", filepath.Base(filePath))
@@ -859,14 +1076,14 @@ func main() {
 		// Handle model loading command
 		if strings.HasPrefix(question, "/model ") {
 			filePath := strings.TrimSpace(strings.TrimPrefix(question, "/model "))
-			if err := openaiClient.loadModel(filePath); err != nil {
+			if err := anthropicClient.loadModel(filePath); err != nil {
 				fmt.Printf("Error loading model: %v\n", err)
 			} else {
-				fmt.Printf("Loaded and created model: %s\n", openaiClient.model.Name)
+				fmt.Printf("Loaded and created model: %s\n", anthropicClient.model.Name)
 				// Update system prompt in history if present
-				if openaiClient.model.System != "" {
-					openaiClient.history = NewConversationHistory(openaiClient.model.System)
-					fmt.Printf("System prompt: %s\n", openaiClient.model.System)
+				if anthropicClient.model.System != "" {
+					anthropicClient.history = NewConversationHistory(anthropicClient.model.System)
+					fmt.Printf("System prompt: %s\n", anthropicClient.model.System)
 				}
 			}
 			continue
@@ -875,10 +1092,10 @@ func main() {
 		// Clear history command
 		if question == "/clear" {
 			systemPrompt := ""
-			if openaiClient.model != nil {
-				systemPrompt = openaiClient.model.System
+			if anthropicClient.model != nil {
+				systemPrompt = anthropicClient.model.System
 			}
-			openaiClient.history = NewConversationHistory(systemPrompt)
+			anthropicClient.history = NewConversationHistory(systemPrompt)
 			fmt.Println("Conversation history cleared.")
 			continue
 		}
@@ -887,23 +1104,23 @@ func main() {
 		if question == "/history" {
 			fmt.Println("\nConversation History:")
 			caser := cases.Title(language.English)
-			for _, msg := range openaiClient.history.Messages {
+			for _, msg := range anthropicClient.history.Messages {
 				role := caser.String(msg.Role)
 				fmt.Printf("%s: %s\n", role, msg.Content)
 			}
-			fmt.Printf("\nEstimated tokens: %d\n", openaiClient.history.EstimateTokenCount())
+			fmt.Printf("\nEstimated tokens: %d\n", anthropicClient.history.EstimateTokenCount())
 			continue
 		}
 
 		// Show status command
 		if question == "/status" {
-			openaiClient.showStatus()
+			anthropicClient.showStatus()
 			continue
 		}
 
 		// Handle dump command
 		if question == "/dump" {
-			if err := openaiClient.dumpContextToFile("context-dump.txt"); err != nil {
+			if err := anthropicClient.dumpContextToFile("context-dump.txt"); err != nil {
 				fmt.Printf("Error: %v\n", err)
 			} else {
 				fmt.Println("Context dumped to context-dump.txt")
@@ -913,7 +1130,7 @@ func main() {
 
 		// Prepare messages array: context (if any) followed by conversation history
 		messages := make([]Message, 0)
-		if contextMsg := openaiClient.buildContextMessage(); contextMsg != "" {
+		if contextMsg := anthropicClient.buildContextMessage(); contextMsg != "" {
 			messages = append(messages, Message{
 				Role:    "user",
 				Content: "Here is the current context. Use this information to answer my next question:\n\n" + contextMsg,
@@ -921,17 +1138,17 @@ func main() {
 		}
 
 		// Add user question to history
-		openaiClient.history.AddUserMessage(question)
+		anthropicClient.history.AddUserMessage(question)
 
 		// Trim history to fit context window if needed
-		openaiClient.history.TrimToFit(openaiClient.getContextWindow())
+		anthropicClient.history.TrimToFit(anthropicClient.getContextWindow())
 
 		// Prepare messages array: context (if any) followed by conversation history
 		if len(messages) > 0 {
 			// If we have context, add it before the conversation history
-			messages = append(messages, openaiClient.history.Messages...)
+			messages = append(messages, anthropicClient.history.Messages...)
 		} else {
-			messages = openaiClient.history.Messages
+			messages = anthropicClient.history.Messages
 		}
 
 		// Prepare chat request
@@ -941,7 +1158,7 @@ func main() {
 		}
 
 		fmt.Println()
-		if err := openaiClient.Chat(context.Background(), req); err != nil {
+		if err := anthropicClient.Chat(context.Background(), req); err != nil {
 			if err.Error() == "submission cancelled by user" {
 				fmt.Println("Request cancelled. Type your next prompt or command.")
 				continue
@@ -1020,28 +1237,14 @@ func (h *ConversationHistory) TrimToFit(tokenLimit int) {
 	}
 }
 
-// getContextWindow returns the model's context window size based on OpenAI model
-func (c *OpenAIClient) getContextWindow() int {
-	// For OpenAI models, determine context window based on model name
-	modelName := c.defaultModel
-	if c.model != nil {
-		modelName = c.model.Name
-	}
-	
-	switch {
-	case strings.HasPrefix(modelName, "gpt-4o"):
-		return 128000 // GPT-4o and GPT-4o-mini have 128k context
-	case strings.HasPrefix(modelName, "gpt-4"):
-		return 8192 // GPT-4 standard context
-	case strings.HasPrefix(modelName, "gpt-3.5"):
-		return 16384 // GPT-3.5-turbo context
-	default:
-		return 4096 // Conservative default
-	}
+// getContextWindow returns the model's context window size for Claude models
+func (c *AnthropicClient) getContextWindow() int {
+	// All Claude models have 200K context window
+	return 200000
 }
 
 // showStatus prints the current model and context status
-func (c *OpenAIClient) showStatus() {
+func (c *AnthropicClient) showStatus() {
 	fmt.Println("\nCurrent Status:")
 	fmt.Println("-------------")
 
@@ -1180,7 +1383,7 @@ func (c *OpenAIClient) showStatus() {
 }
 
 // dumpContextToFile writes the last sent context to a file
-func (c *OpenAIClient) dumpContextToFile(filename string) error {
+func (c *AnthropicClient) dumpContextToFile(filename string) error {
 	if len(c.lastContext) == 0 {
 		return fmt.Errorf("no context available - send a prompt first")
 	}
@@ -1278,18 +1481,63 @@ func (c *OpenAIClient) dumpContextToFile(filename string) error {
 	return nil
 }
 
-// addAuthHeaders adds OpenAI authentication headers to the request
-func (c *OpenAIClient) addAuthHeaders(req *http.Request) error {
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	if apiKey == "" {
-		return fmt.Errorf("OPENAI_API_KEY environment variable is required")
+// addAuthHeaders adds Anthropic authentication headers to the request
+func (c *AnthropicClient) addAuthHeaders(req *http.Request) error {
+	switch c.provider {
+	case "direct":
+		return c.addDirectAnthropicAuth(req)
+	case "bedrock":
+		return c.addBedrockAuth(req)
+	default:
+		return fmt.Errorf("unsupported provider: %s", c.provider)
 	}
-	req.Header.Set("Authorization", "Bearer "+apiKey)
+}
+
+// addDirectAnthropicAuth adds authentication headers for direct Anthropic API
+func (c *AnthropicClient) addDirectAnthropicAuth(req *http.Request) error {
+	apiKey := os.Getenv("ANTHROPIC_API_KEY")
+	if apiKey == "" {
+		return fmt.Errorf("ANTHROPIC_API_KEY environment variable is required for direct API access")
+	}
+	
+	// Validate API key format
+	if !strings.HasPrefix(apiKey, "sk-ant-") {
+		return fmt.Errorf("invalid ANTHROPIC_API_KEY format (should start with 'sk-ant-')")
+	}
+	
+	req.Header.Set("x-api-key", apiKey)
+	req.Header.Set("anthropic-version", c.version)
 	req.Header.Set("Content-Type", "application/json")
 	
-	// Optional organization header
-	if orgID := os.Getenv("OPENAI_ORG_ID"); orgID != "" {
-		req.Header.Set("OpenAI-Organization", orgID)
-	}
 	return nil
+}
+
+// addBedrockAuth adds authentication headers for Bedrock (placeholder for Phase 3)
+func (c *AnthropicClient) addBedrockAuth(req *http.Request) error {
+	// Bedrock authentication will be implemented in Phase 3
+	// For now, return an error indicating it's not yet implemented
+	return fmt.Errorf("Bedrock authentication not yet implemented - will be added in Phase 3")
+}
+
+// validateAuthentication checks if the current authentication setup is valid
+func (c *AnthropicClient) validateAuthentication() error {
+	switch c.provider {
+	case "direct":
+		apiKey := os.Getenv("ANTHROPIC_API_KEY")
+		if apiKey == "" {
+			return fmt.Errorf("ANTHROPIC_API_KEY environment variable is required for direct API access")
+		}
+		if !strings.HasPrefix(apiKey, "sk-ant-") {
+			return fmt.Errorf("invalid ANTHROPIC_API_KEY format (should start with 'sk-ant-')")
+		}
+		return nil
+	case "bedrock":
+		// Basic AWS credentials check - full implementation in Phase 3
+		if os.Getenv("AWS_ACCESS_KEY_ID") == "" && os.Getenv("AWS_PROFILE") == "" {
+			return fmt.Errorf("AWS credentials required for Bedrock (set AWS_ACCESS_KEY_ID or AWS_PROFILE)")
+		}
+		return nil
+	default:
+		return fmt.Errorf("unsupported provider: %s", c.provider)
+	}
 }
