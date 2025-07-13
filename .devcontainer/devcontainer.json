@@ -1,0 +1,24 @@
+{
+  "name": "Go Dev Container",
+  "image": "mcr.microsoft.com/devcontainers/go:1.22", // Use Go 1.22 - compatible with this codebase
+  "features": {
+    "ghcr.io/devcontainers/features/go:1": {
+      "version": "1.22"
+    }
+  },
+  "postCreateCommand": "go mod download && go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest github.com/go-delve/delve/cmd/dlv@latest golang.org/x/tools/cmd/goimports@latest",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.Go",
+        "GitHub.copilot"
+      ]
+    }
+  },
+  "forwardPorts": [8080], // Adjust for your app
+  "settings": {
+    "go.toolsManagement.autoUpdate": true,
+    "go.useLanguageServer": true,
+    "go.lintTool": "golangci-lint"
+  }
+}
