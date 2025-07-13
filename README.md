@@ -1,10 +1,10 @@
-# OpenAI Client with MCP Server Example
+# AI Client with MCP Server Example
 
 A comprehensive Go-based toolkit demonstrating AI API integration and Model Context Protocol (MCP) implementation. This project showcases two complementary components working together to provide a complete AI development experience.
 
 ## Project Components
 
-### 🤖 OpenAI Client (`/client`)
+### 🤖 AI Client (`/client`)
 An advanced interactive CLI client for OpenAI's API featuring:
 - **Model Configuration**: JSON-based model definitions with parameter control
 - **Context Management**: Intelligent file loading with token counting and auto-trimming
