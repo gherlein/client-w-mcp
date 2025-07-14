@@ -345,6 +345,289 @@ The `parameters` section supports the following Anthropic API parameters:
 
 ### References
 
+## Using with Bedrock
+
+Amazon Bedrock provides access to Anthropic's Claude models through AWS infrastructure, offering enterprise features like VPC connectivity, enhanced security, and AWS billing integration. This section explains how to configure the client to work with Claude models through Bedrock.
+
+### Overview
+
+When using Bedrock, your application connects to AWS Bedrock endpoints instead of directly to Anthropic's API. Bedrock acts as a proxy, providing:
+
+- **Enterprise Security**: VPC endpoints, IAM-based access control, and audit logging
+- **Compliance**: SOC, HIPAA, and other compliance certifications
+- **AWS Integration**: CloudWatch monitoring, unified billing, and AWS ecosystem integration
+- **Regional Deployment**: Deploy models in specific AWS regions for data residency
+
+### Prerequisites
+
+1. **AWS Account**: Active AWS account with appropriate permissions
+2. **Bedrock Access**: Access to Amazon Bedrock service in your target region
+3. **Model Access**: Request access to Anthropic Claude models in Bedrock console
+4. **AWS Credentials**: Configured AWS credentials (IAM user, role, or profile)
+
+### Requesting Model Access
+
+Before using Claude models through Bedrock, you must request access:
+
+1. **Navigate to Bedrock Console**: Go to AWS Bedrock in your preferred region
+2. **Model Access**: Click "Model access" in the left sidebar
+3. **Request Access**: Select Claude models you want to use:
+   - `anthropic.claude-3-5-sonnet-20241022-v2:0`
+   - `anthropic.claude-3-5-haiku-20241022-v1:0`
+   - `anthropic.claude-3-opus-20240229-v1:0`
+   - `anthropic.claude-3-sonnet-20240229-v1:0`
+4. **Submit Request**: Provide use case details and submit access request
+5. **Wait for Approval**: Model access is typically granted within minutes to hours
+
+### AWS Credentials Setup
+
+Configure AWS credentials using one of these methods:
+
+#### Method 1: Environment Variables
+```bash
+export AWS_ACCESS_KEY_ID="your-access-key-id"
+export AWS_SECRET_ACCESS_KEY="your-secret-access-key"
+export AWS_DEFAULT_REGION="us-east-1"  # or your preferred region
+```
+
+#### Method 2: AWS Credentials File
+```bash
+# ~/.aws/credentials
+[default]
+aws_access_key_id = your-access-key-id
+aws_secret_access_key = your-secret-access-key
+
+# ~/.aws/config
+[default]
+region = us-east-1
+```
+
+#### Method 3: IAM Roles (Recommended for EC2/ECS)
+When running on AWS infrastructure, use IAM roles instead of access keys:
+```bash
+# No credentials needed - uses instance/task role
+export AWS_DEFAULT_REGION="us-east-1"
+```
+
+### Client Configuration for Bedrock
+
+#### 1. Update Environment Variables
+```bash
+# Remove Anthropic API key (not needed for Bedrock)
+unset ANTHROPIC_API_KEY
+
+# Set AWS region for Bedrock
+export AWS_DEFAULT_REGION="us-east-1"
+
+# Optional: Set custom Bedrock endpoint URL
+export ANTHROPIC_BASE_URL="https://bedrock-runtime.us-east-1.amazonaws.com"
+```
+
+#### 2. Model Configuration Files
+
+Create model configuration files using Bedrock model identifiers:
+
+**claude-3-5-sonnet-bedrock.json**:
+```json
+{
+  "name": "anthropic.claude-3-5-sonnet-20241022-v2:0",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 4096
+  },
+  "system": "You are a helpful assistant with expertise in software development.",
+  "format": "markdown"
+}
+```
+
+**claude-3-5-haiku-bedrock.json**:
+```json
+{
+  "name": "anthropic.claude-3-5-haiku-20241022-v1:0",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 4096
+  },
+  "system": "You are a helpful assistant optimized for fast, efficient responses.",
+  "format": "markdown"
+}
+```
+
+**claude-3-opus-bedrock.json**:
+```json
+{
+  "name": "anthropic.claude-3-opus-20240229-v1:0",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 4096
+  },
+  "system": "You are a highly capable assistant for complex reasoning tasks.",
+  "format": "markdown"
+}
+```
+
+### Bedrock Model Identifiers
+
+| Anthropic Model | Bedrock Model ID |
+|----------------|------------------|
+| Claude 3.5 Sonnet | `anthropic.claude-3-5-sonnet-20241022-v2:0` |
+| Claude 3.5 Haiku | `anthropic.claude-3-5-haiku-20241022-v1:0` |
+| Claude 3 Opus | `anthropic.claude-3-opus-20240229-v1:0` |
+| Claude 3 Sonnet | `anthropic.claude-3-sonnet-20240229-v1:0` |
+
+### Usage Examples
+
+#### Basic Usage with Bedrock
+```bash
+# Set region and remove Anthropic API key
+export AWS_DEFAULT_REGION="us-east-1"
+unset ANTHROPIC_API_KEY
+
+# Run client with Bedrock model
+cd client
+./client -model claude-3-5-sonnet-bedrock.json
+```
+
+#### Using Custom Bedrock Endpoint
+```bash
+# For specific region or custom endpoint
+export ANTHROPIC_BASE_URL="https://bedrock-runtime.us-west-2.amazonaws.com"
+./client -model claude-3-5-sonnet-bedrock.json
+```
+
+#### Command Line Options for Bedrock
+```bash
+# Specify Bedrock endpoint and model
+./client \
+  -url "https://bedrock-runtime.us-east-1.amazonaws.com" \
+  -model claude-3-5-sonnet-bedrock.json \
+  -prompt initial-prompt.txt
+```
+
+### Regional Availability
+
+Claude models are available in different AWS regions through Bedrock:
+
+| Region | Claude 3.5 Sonnet | Claude 3.5 Haiku | Claude 3 Opus | Claude 3 Sonnet |
+|--------|:-----------------:|:-----------------:|:-------------:|:---------------:|
+| us-east-1 | ✅ | ✅ | ✅ | ✅ |
+| us-west-2 | ✅ | ✅ | ✅ | ✅ |
+| eu-west-1 | ✅ | ✅ | ❌ | ✅ |
+| ap-southeast-1 | ✅ | ✅ | ❌ | ✅ |
+| ap-northeast-1 | ✅ | ✅ | ❌ | ✅ |
+
+*Note: Regional availability changes frequently. Check the AWS Bedrock console for current availability.*
+
+### Cost Considerations
+
+#### Bedrock Pricing Model
+- **On-Demand**: Pay per token with no upfront costs
+- **Provisioned Throughput**: Reserved capacity for consistent performance
+- **Data Transfer**: Standard AWS data transfer charges apply
+
+#### Cost Optimization Tips
+1. **Choose Appropriate Models**: Use Claude 3.5 Haiku for simple tasks, Sonnet/Opus for complex reasoning
+2. **Optimize Context**: Minimize context window usage to reduce input token costs
+3. **Regional Selection**: Some regions may have lower pricing
+4. **Monitoring**: Use CloudWatch to track usage and costs
+
+### Monitoring and Logging
+
+#### CloudWatch Integration
+Bedrock automatically logs metrics to CloudWatch:
+- **Request Count**: Number of API calls
+- **Token Usage**: Input and output token consumption  
+- **Latency**: Response time metrics
+- **Error Rates**: Failed request tracking
+
+#### Custom Logging
+```bash
+# Enable detailed logging
+export AWS_SDK_LOAD_CONFIG=1
+export AWS_LOG_LEVEL=debug
+
+# Run client with detailed AWS SDK logging
+./client -model claude-3-5-sonnet-bedrock.json
+```
+
+### Troubleshooting
+
+#### Common Issues and Solutions
+
+1. **Access Denied Error**
+   ```
+   Error: AccessDenied - The request was denied due to request throttling
+   ```
+   **Solution**: Request model access in Bedrock console and verify IAM permissions
+
+2. **Invalid Model ID**
+   ```
+   Error: ValidationException - The model identifier is invalid
+   ```
+   **Solution**: Use correct Bedrock model identifiers (e.g., `anthropic.claude-3-5-sonnet-20241022-v2:0`)
+
+3. **Region Not Supported**
+   ```
+   Error: ValidationException - The model is not available in this region
+   ```
+   **Solution**: Switch to a supported region or use a different model
+
+4. **Credentials Not Found**
+   ```
+   Error: NoCredentialsError - Unable to locate credentials
+   ```
+   **Solution**: Configure AWS credentials using one of the methods above
+
+#### Required IAM Permissions
+Create an IAM policy with these permissions:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
+      ],
+      "Resource": [
+        "arn:aws:bedrock:*::foundation-model/anthropic.claude-*"
+      ]
+    }
+  ]
+}
+```
+
+### Security Best Practices
+
+1. **Use IAM Roles**: Prefer IAM roles over access keys when possible
+2. **Least Privilege**: Grant minimum required permissions
+3. **VPC Endpoints**: Use VPC endpoints for private connectivity
+4. **Encryption**: Enable encryption in transit and at rest
+5. **Audit Logging**: Enable CloudTrail for API call auditing
+6. **Rotation**: Regularly rotate access keys if using them
+
+### Performance Optimization
+
+1. **Regional Proximity**: Choose regions close to your users
+2. **Model Selection**: Balance capability vs. latency requirements
+3. **Context Management**: Optimize context window usage
+4. **Connection Pooling**: Reuse connections when possible
+5. **Retry Logic**: Implement exponential backoff for retries
+
+### Migration from Direct API
+
+If migrating from direct Anthropic API to Bedrock:
+
+1. **Update Model Names**: Change to Bedrock model identifiers
+2. **Remove API Keys**: No longer need `ANTHROPIC_API_KEY`
+3. **Add AWS Config**: Configure AWS credentials and region
+4. **Update Endpoints**: Point to Bedrock endpoints
+5. **Test Thoroughly**: Verify all functionality works with Bedrock
+
 ## Build Commands
 
 ### Client Build Commands
