@@ -1,10 +1,10 @@
-# OpenAI Client
+# Anthropic Client
 
-An advanced interactive CLI client for OpenAI's API with sophisticated context management, performance monitoring, and model configuration capabilities.
+An advanced interactive CLI client for Anthropic's API with sophisticated context management, performance monitoring, and model configuration capabilities.
 
 ## Overview
 
-This client provides a rich interactive interface for working with OpenAI models, featuring intelligent context management, real-time performance metrics, and flexible model configuration through JSON files.
+This client provides a rich interactive interface for working with Anthropic models, featuring intelligent context management, real-time performance metrics, and flexible model configuration through JSON files.
 
 ## Features
 
@@ -34,12 +34,12 @@ Automatically displays after each interaction:
 
 ### Prerequisites
 - Go 1.19+
-- OpenAI API key
+- Anthropic API key
 
 ### Setup and Run
 ```bash
 # Set API key
-export OPENAI_API_KEY="sk-your-api-key-here"
+export ANTHROPIC_API_KEY="sk-ant-your-api-key-here"
 
 # Build and run
 make run
@@ -57,8 +57,8 @@ go build -o client . && ./client
 Flags:
   -model string     Path to model definition file (JSON format)
   -prompt string    Path to initial prompt file
-  -url string       OpenAI API base URL (default: https://api.openai.com)
-  -default-model    Default model to use (default: gpt-4o-mini)
+  -url string       Anthropic API base URL (default: https://api.anthropic.com)
+  -default-model    Default model to use (default: claude-3-5-sonnet-20241022)
   -context, -c      Show full context before sending to LLM
 ```
 
@@ -68,13 +68,13 @@ Flags:
 ./client
 
 # Using custom model configuration
-./client -model gpt-4o.json
+./client -model claude-3-5-sonnet.json
 
 # Starting with initial prompt
-./client -model gpt-4o-mini.json -prompt test-prompt.txt
+./client -model claude-3-5-haiku.json -prompt test-prompt.txt
 
 # Show context before sending
-./client -context -model gpt-4.json
+./client -context -model claude-3-opus.json
 ```
 
 ## Architecture Overview
@@ -91,14 +91,14 @@ block-beta
   
   space:1 arrow1<["processes"]>(down) arrow2<["loads"]>(down) arrow3<["loads"]>(down)
   
-  space:1 OpenAIClient["OpenAI Client<br/>Core Engine"] space:1 space:1
+  space:1 AnthropicClient["Anthropic Client<br/>Core Engine"] space:1 space:1
   
   space:1 arrow4<["manages"]>(down) space:1 space:1
   
-  ConversationHistory["Conversation<br/>History"] HTTPClient["HTTP Client<br/>OpenAI API"] PerfMetrics["Performance<br/>Metrics"] ContextManager["Context<br/>Manager"]
+  ConversationHistory["Conversation<br/>History"] HTTPClient["HTTP Client<br/>Anthropic API"] PerfMetrics["Performance<br/>Metrics"] ContextManager["Context<br/>Manager"]
 
   style CLI fill:#e3f2fd
-  style OpenAIClient fill:#e8f5e8
+  style AnthropicClient fill:#e8f5e8
   style ModelConfig fill:#fff3e0
   style ConversationHistory fill:#fce4ec
   style HTTPClient fill:#f1f8e9
@@ -114,7 +114,7 @@ The `ModelDefinition` struct encapsulates all model configuration:
 
 ```go
 type ModelDefinition struct {
-    Name       string          // OpenAI model name (e.g., "gpt-4o-mini")
+    Name       string          // Anthropic model name (e.g., "claude-3-5-sonnet-20241022")
     Modelfile  string          // Legacy Ollama support
     Parameters ModelParameters // API parameters (temperature, top_p, etc.)
     Options    ModelOptions    // Model options (context window, etc.)
@@ -148,9 +148,9 @@ type PerfMetrics struct {
 }
 ```
 
-### 2. OpenAI Client Core Engine
+### 2. Anthropic Client Core Engine
 
-The `OpenAIClient` serves as the central orchestrator:
+The `AnthropicClient` serves as the central orchestrator:
 
 ```mermaid
 block-beta
@@ -179,21 +179,21 @@ block-beta
 sequenceDiagram
     participant Main as main()
     participant Flags as Flag Parser
-    participant Client as OpenAI Client
+    participant Client as Anthropic Client
     participant Model as Model Loader
     participant History as Conversation History
     participant Readline as Interactive CLI
 
     Main->>Flags: Parse command line flags
     Flags->>Main: Return parsed flags
-    Main->>Client: Create OpenAI client
+    Main->>Client: Create Anthropic client
     
     alt Model config provided
         Main->>Model: Load model configuration
         Model->>Client: Set model definition
         Client->>History: Initialize with system prompt
     else No model config
-        Main->>Client: Use default model (gpt-4o-mini)
+        Main->>Client: Use default model (claude-3-5-sonnet-20241022)
         Client->>History: Initialize empty history
     end
     
@@ -213,8 +213,8 @@ sequenceDiagram
 sequenceDiagram
     participant User as User
     participant CLI as Interactive CLI
-    participant Client as OpenAI Client
-    participant API as OpenAI API
+    participant Client as Anthropic Client
+    participant API as Anthropic API
     participant History as Conversation History
     participant Context as Context Manager
 
@@ -263,19 +263,19 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant Client as OpenAI Client
+    participant Client as Anthropic Client
     participant Request as HTTP Request Builder
     participant Auth as Authentication
-    participant API as OpenAI API
+    participant API as Anthropic API
     participant Stream as Stream Processor
     participant Metrics as Performance Metrics
 
     Client->>Request: Build chat completion request
-    Request->>Request: Map model parameters to OpenAI format
+    Request->>Request: Map model parameters to Anthropic format
     Request->>Auth: Add authentication headers
     Auth->>Request: Set API key and org headers
     
-    Client->>API: POST /v1/chat/completions
+    Client->>API: POST /v1/messages
     
     alt Successful Request
         API->>Stream: HTTP 200 with streaming response
@@ -340,16 +340,18 @@ The client uses a sophisticated token estimation algorithm:
 Model-specific context window detection:
 
 ```go
-func (c *OpenAIClient) getContextWindow() int {
+func (c *AnthropicClient) getContextWindow() int {
     switch {
-    case strings.HasPrefix(modelName, "gpt-4o"):
-        return 128000 // GPT-4o and GPT-4o-mini
-    case strings.HasPrefix(modelName, "gpt-4"):
-        return 8192   // GPT-4 standard
-    case strings.HasPrefix(modelName, "gpt-3.5"):
-        return 16384  // GPT-3.5-turbo
+    case strings.HasPrefix(modelName, "claude-3-5-sonnet"):
+        return 200000 // Claude 3.5 Sonnet
+    case strings.HasPrefix(modelName, "claude-3-5-haiku"):
+        return 200000 // Claude 3.5 Haiku
+    case strings.HasPrefix(modelName, "claude-3-opus"):
+        return 200000 // Claude 3 Opus
+    case strings.HasPrefix(modelName, "claude-3-sonnet"):
+        return 200000 // Claude 3 Sonnet
     default:
-        return 4096   // Conservative default
+        return 200000 // Conservative default
     }
 }
 ```
@@ -411,7 +413,7 @@ sequenceDiagram
     participant File as JSON File
     participant Loader as Model Loader
     participant Validator as Validator
-    participant Client as OpenAI Client
+    participant Client as Anthropic Client
     participant History as Conversation History
 
     Loader->>File: Read model configuration
@@ -636,11 +638,11 @@ block-beta
 
 ```mermaid
 sequenceDiagram
-    participant Client as GCHAI Client
+    participant Client as Anthropic Client
     participant Env as Environment Variables
-    participant API as OpenAI API
+    participant API as Anthropic API
 
-    Client->>Env: Read OPENAI_API_KEY
+    Client->>Env: Read ANTHROPIC_API_KEY
     
     alt API Key Present
         Env->>Client: Return API key
@@ -654,9 +656,9 @@ sequenceDiagram
     end
     
     opt Organization ID Available
-        Client->>Env: Read OPENAI_ORG_ID
+        Client->>Env: Read ANTHROPIC_ORG_ID
         Env->>Client: Return org ID
-        Client->>Client: Set OpenAI-Organization header
+        Client->>Client: Set Anthropic-Organization header
     end
 ```
 
@@ -800,7 +802,7 @@ block-beta
 #### Potential Enhancements
 
 1. **Multi-Provider Support**:
-   - Anthropic Claude integration
+   - OpenAI GPT integration
    - Google Gemini support
    - Azure OpenAI Service
    - Local model support (Ollama, etc.)
@@ -825,7 +827,7 @@ block-beta
 
 ## Conclusion
 
-The GCHAI client represents a well-architected, feature-rich implementation of an OpenAI API client. Its strengths include:
+The client represents a well-architected, feature-rich implementation of an Anthropic API client. Its strengths include:
 
 ### Key Strengths
 

@@ -11,7 +11,7 @@
       "version": "lts"
     }
   },
-  "postCreateCommand": "npm install -g @anthropic-ai/claude-code",
+  "postCreateCommand": "npm install -g @anthropic-ai/claude-code;echo \"alias clauded='claude --dangerously-skip-permissions'\" >> ~/.bashrc",
   "customizations": {
     "vscode": {
       "extensions": [

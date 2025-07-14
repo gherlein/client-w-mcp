@@ -5,7 +5,7 @@ A comprehensive Go-based toolkit demonstrating AI API integration and Model Cont
 ## Project Components
 
 ### 🤖 AI Client (`/client`)
-An advanced interactive CLI client for OpenAI's API featuring:
+An advanced interactive CLI client for Anthropic's API featuring:
 - **Model Configuration**: JSON-based model definitions with parameter control
 - **Context Management**: Intelligent file loading with token counting and auto-trimming
 - **Performance Monitoring**: Real-time metrics for tokens/sec, response time, and context usage
@@ -22,7 +22,7 @@ A Model Context Protocol server providing extensible tool capabilities:
 
 ```mermaid
 graph TB
-    subgraph "OpenAI Client"
+    subgraph "Anthropic Client"
         CLI[Interactive CLI]
         Context[Context Manager]
         Config[Model Config]
@@ -36,33 +36,33 @@ graph TB
     end
     
     subgraph "External Services"
-        OpenAI[OpenAI API]
+        Anthropic[Anthropic API]
         Files[Local Files]
     end
     
     CLI --> Context
     Context --> Files
-    Config --> OpenAI
-    CLI --> OpenAI
+    Config --> Anthropic
+    CLI --> Anthropic
     
     HTTP --> Tools
     Tools --> Time
     
     style CLI fill:#e3f2fd
     style HTTP fill:#f3e5f5
-    style OpenAI fill:#e8f5e8
+    style Anthropic fill:#e8f5e8
 ```
 
 ## Quick Start
 
 ### Prerequisites
 - Go 1.19 or later
-- OpenAI API key (for client)
+- Anthropic API key (for client)
 
 ### Setup
-1. **Set OpenAI API key**:
+1. **Set Anthropic API key**:
    ```bash
-   export OPENAI_API_KEY="sk-your-api-key-here"
+   export ANTHROPIC_API_KEY="sk-ant-your-api-key-here"
    ```
 
 2. **Build and run the client**:
@@ -77,7 +77,7 @@ graph TB
    make run
    ```
 
-## Using the OpenAI Client
+## Using the Anthropic Client
 
 The client provides an interactive chat interface with advanced features for AI development.
 
@@ -90,8 +90,8 @@ cd client
 Flags:
   -model string     Path to model definition file (JSON format)
   -prompt string    Path to initial prompt file to start the conversation
-  -url string       OpenAI API base URL (default: https://api.openai.com)
-  -default-model    Default OpenAI model to use (default: gpt-4o-mini)
+  -url string       Anthropic API base URL (default: https://api.anthropic.com)
+  -default-model    Default Anthropic model to use (default: claude-3-5-sonnet-20241022)
   -context, -c      Show prompts and context before sending to LLM
 ```
 
@@ -105,13 +105,13 @@ Flags:
   - Optional for interactive chat mode
   - File should contain the prompt text to send to the model
 
-- **-url**: OpenAI API base URL (default: <https://api.openai.com>)
+- **-url**: Anthropic API base URL (default: <https://api.anthropic.com>)
   - Can be used to point to compatible API endpoints
   - Useful for testing or using alternative providers
 
-- **-default-model**: Default OpenAI model to use (default: gpt-4o-mini)
+- **-default-model**: Default Anthropic model to use (default: claude-3-5-sonnet-20241022)
   - Used when no model configuration file is specified
-  - Should be a valid OpenAI model name
+  - Should be a valid Anthropic model name
 
 - **-context, -c**: Show prompts and context before sending to LLM
   - Displays the full context being sent to the model
@@ -161,13 +161,13 @@ Here are some common usage examples:
 cd client && ./client
 
 # Using a custom model with specific parameters
-./client -model gpt-4o.json
+./client -model claude-3-5-sonnet.json
 
 # Starting with an initial prompt
-./client -model gpt-4o-mini.json -prompt test-prompt.txt
+./client -model claude-3-5-haiku.json -prompt test-prompt.txt
 
 # Show context before sending to model
-./client -context -model gpt-4.json
+./client -context -model claude-3-opus.json
 ```
 
 ## Using the MCP Server
@@ -236,9 +236,9 @@ To extend the server with additional tools:
 ### Environment Variables
 
 #### Client Configuration
-- `OPENAI_API_KEY`: Your OpenAI API key (required)
-- `OPENAI_ORG_ID`: Your OpenAI organization ID (optional)
-- `OPENAI_BASE_URL`: Custom OpenAI API base URL (optional, default: https://api.openai.com)
+- `ANTHROPIC_API_KEY`: Your Anthropic API key (required)
+- `ANTHROPIC_ORG_ID`: Your Anthropic organization ID (optional)
+- `ANTHROPIC_BASE_URL`: Custom Anthropic API base URL (optional, default: https://api.anthropic.com)
 
 #### Server Configuration
 The MCP server currently requires no environment variables but can be extended with:
@@ -247,36 +247,33 @@ The MCP server currently requires no environment variables but can be extended w
 
 ## Model Files
 
-Model configuration for OpenAI models is done via a "model definition file" in JSON format. The file supports OpenAI API parameters:
+Model configuration for Anthropic models is done via a "model definition file" in JSON format. The file supports Anthropic API parameters:
 
 ```json
 {
-  "name": "gpt-4o-mini",
+  "name": "claude-3-5-sonnet-20241022",
   "parameters": {
     "temperature": 0.7,
     "top_p": 0.9,
-    "max_tokens": 2048,
-    "frequency_penalty": 0.1,
-    "presence_penalty": 0.0,
-    "seed": 42
+    "max_tokens": 2048
   },
   "system": "You are a helpful assistant with expertise in software development.",
   "format": "markdown"
 }
 ```
 
-### Available OpenAI Models
+### Available Anthropic Models
 
-- **gpt-4o-mini**: Fast, cost-effective model with 128k context window
-- **gpt-4o**: Advanced model with enhanced capabilities and 128k context
-- **gpt-4**: High-quality model with 8k context window
-- **gpt-3.5-turbo**: Fast, efficient model with 16k context window
+- **claude-3-5-sonnet-20241022**: Advanced model with enhanced capabilities and 200k context
+- **claude-3-5-haiku-20241022**: Fast, cost-effective model with 200k context window
+- **claude-3-opus-20240229**: Most capable model with 200k context window
+- **claude-3-sonnet-20240229**: Balanced model with 200k context window
 
-### OpenAI Parameters
+### Anthropic Parameters
 
-The `parameters` section supports the following OpenAI API parameters:
+The `parameters` section supports the following Anthropic API parameters:
 
-- **temperature** (0.0-2.0): Controls randomness in responses
+- **temperature** (0.0-1.0): Controls randomness in responses
   - Lower values (0.1-0.3) make output more focused and deterministic
   - Higher values (0.7-1.0) make output more creative and varied
   - Default: 0.7
@@ -287,19 +284,7 @@ The `parameters` section supports the following OpenAI API parameters:
 
 - **max_tokens**: Maximum number of tokens to generate
   - Controls the length of the response
-  - Default varies by model
-
-- **frequency_penalty** (-2.0 to 2.0): Reduces repetition based on frequency
-  - Positive values discourage repetition
-  - Default: 0.0
-
-- **presence_penalty** (-2.0 to 2.0): Reduces repetition based on presence
-  - Positive values encourage discussing new topics
-  - Default: 0.0
-
-- **seed**: Integer seed for deterministic outputs
-  - Same seed with same parameters should produce similar outputs
-  - Optional
+  - Default varies by model (typically 4096)
 }
 ```
 
@@ -393,9 +378,9 @@ cd server && go build -o server . && ./server
 
 The repository includes several pre-configured model files:
 
-- `gpt-4o-mini.json`: Fast, cost-effective model
-- `gpt-4o.json`: Advanced model with enhanced capabilities
-- `gpt-4.json`: High-quality model for complex tasks
+- `claude-3-5-haiku.json`: Fast, cost-effective model
+- `claude-3-5-sonnet.json`: Advanced model with enhanced capabilities
+- `claude-3-opus.json`: Most capable model for complex tasks
 
 ## Development and Extension
 
@@ -412,27 +397,27 @@ The repository includes several pre-configured model files:
 - **Education**: Learning AI integration patterns and protocols
 
 ### Future Enhancements
-- **Multi-Provider Support**: Add support for other AI providers (Anthropic, Azure, etc.)
+- **Multi-Provider Support**: Add support for other AI providers (OpenAI, Azure, etc.)
 - **Advanced Tools**: Extend MCP server with file manipulation, web search, code execution
 - **Collaboration**: Session sharing and team features
 - **Monitoring**: Enhanced logging, metrics, and observability
 
 ## API Usage and Costs
 
-When using OpenAI's API, be aware of:
+When using Anthropic's API, be aware of:
 - **Token-based pricing**: Pay for input and output tokens
 - **Rate limits**: API requests subject to rate limiting
 - **Context windows**: Larger contexts cost more but provide better continuity
 - **Model differences**: Different capabilities and costs per model
 
-For current pricing: [OpenAI Pricing](https://openai.com/pricing)
+For current pricing: [Anthropic Pricing](https://www.anthropic.com/pricing)
 
 ## References
 
-### OpenAI API
-- [OpenAI API Documentation](https://platform.openai.com/docs)
-- [Model Information](https://platform.openai.com/docs/models)
-- [API Reference](https://platform.openai.com/docs/api-reference/chat)
+### Anthropic API
+- [Anthropic API Documentation](https://docs.anthropic.com/)
+- [Model Information](https://docs.anthropic.com/en/docs/about-claude/models)
+- [API Reference](https://docs.anthropic.com/en/api/messages)
 
 ### Model Context Protocol (MCP)
 - [MCP Specification](https://spec.modelcontextprotocol.io/)
