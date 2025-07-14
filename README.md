@@ -1,6 +1,6 @@
 # AI Client with MCP Server Example
 
-A comprehensive Go-based toolkit demonstrating AI API integration and Model Context Protocol (MCP) implementation. This project showcases two complementary components working together to provide a complete AI development experience.
+A comprehensive Go-based toolkit demonstrating AI API integration and Model Context Protocol (MCP) implementation. This project showcases two complementary components working together to provide a complete AI development experience.  The client or MCP server can be used independently or together to create powerful AI applications.
 
 ## Project Components
 
@@ -343,7 +343,6 @@ The `parameters` section supports the following Anthropic API parameters:
 | num_thread | Number of CPU threads             | Higher = faster (up to core count)        |
 | num_gpu    | Number of GPUs to use             | Uses more GPUs if available              |
 
-### References
 
 ## Using with Bedrock
 
