@@ -2,6 +2,10 @@
 
 A comprehensive Go-based toolkit demonstrating AI API integration and Model Context Protocol (MCP) implementation. This project showcases two complementary components working together to provide a complete AI development experience.  The client or MCP server can be used independently or together to create powerful AI applications.
 
+## Template Repository 
+
+This is a template repo.  It's recommended that you click the "Use this template" button to create a new repository based on this template.  Then customize the repository to fit your needs.
+
 ## Project Components
 
 ### 🤖 AI Client (`/client`)
